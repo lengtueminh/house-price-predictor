@@ -57,7 +57,8 @@ To begin, ensure the following tools are installed on your system:
 
    ```bash
    uv venv --python python3.11
-   source .venv/bin/activate
+   source .venv/bin/activate (macOS and Linux)
+   .venv\Scripts\activate  (Windows)
    ```
 
 4. **Install dependencies:**
@@ -74,7 +75,7 @@ To track experiments and model runs:
 
 ```bash
 cd deployment/mlflow
-docker compose -f mlflow-docker-compose.yml up -d
+docker compose -f docker-compose.yaml up -d
 docker compose ps
 ```
 
@@ -94,9 +95,9 @@ Access the MLflow UI at [http://localhost:5555](http://localhost:5555)
 If you prefer an interactive experience, launch JupyterLab with:
 
 ```bash
-uv python -m jupyterlab
+uv pip install jupyterlab
 # or
-python -m jupyterlab
+pip install jupyterlab
 ```
 
 ---

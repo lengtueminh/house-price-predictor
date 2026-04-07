@@ -44,12 +44,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Download processed data
-        uses: actions/download-artifact@v5
-        with:
-          name: processed-data
-          path: data/processed/
-
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -71,12 +65,22 @@ jobs:
       - name: Create trained model directory
         run: mkdir -p models/trained/
 
+      - name: Run data processing
+        run: python src/data/run_processing.py
+
+      - name: Run feature engineering
+        run: |
+          python src/features/engineer.py \
+            --input data/processed/cleaned_house_data.csv \
+            --output data/processed/featured_house_data.csv \
+            --preprocessor models/trained/preprocessor.pkl
+
       - name: Train model
         # Script train_model.py yêu cầu tham số bắt buộc; thiếu sẽ exit code 2.
         run: |
           python src/models/train_model.py \
             --config configs/model_config.yaml \
-            --data data/processed/cleaned_house_data.csv \
+            --data data/processed/featured_house_data.csv \
             --models-dir models
 
       - name: Upload trained model

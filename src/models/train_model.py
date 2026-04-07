@@ -1,4 +1,5 @@
 import argparse
+import os
 import pandas as pd
 import numpy as np
 import joblib
@@ -71,6 +72,9 @@ def main(args):
     # Get model
     model = get_model_instance(model_cfg['best_model'], model_cfg['parameters'])
 
+    # Ensure target path exists before saving artifacts
+    os.makedirs(f"{args.models_dir}/trained", exist_ok=True)
+
     # Start MLflow run
     with mlflow.start_run(run_name="final_training"):
         logger.info(f"Training model: {model_cfg['best_model']}")
@@ -90,58 +94,61 @@ def main(args):
         model_uri = f"runs:/{mlflow.active_run().info.run_id}/tuned_model"
 
         logger.info("Registering model to MLflow Model Registry...")
-        client = MlflowClient()
         try:
-            client.create_registered_model(model_name)
-        except mlflow.exceptions.RestException:
-            pass  # already exists
+            client = MlflowClient()
+            try:
+                client.create_registered_model(model_name)
+            except mlflow.exceptions.RestException:
+                pass  # already exists
 
-        model_version = client.create_model_version(
-            name=model_name,
-            source=model_uri,
-            run_id=mlflow.active_run().info.run_id
-        )
+            model_version = client.create_model_version(
+                name=model_name,
+                source=model_uri,
+                run_id=mlflow.active_run().info.run_id
+            )
 
-        # Transition model to "Staging"
-        client.transition_model_version_stage(
-            name=model_name,
-            version=model_version.version,
-            stage="Staging"
-        )
+            # Transition model to "Staging"
+            client.transition_model_version_stage(
+                name=model_name,
+                version=model_version.version,
+                stage="Staging"
+            )
 
-        # Add a human-readable description
-        description = (
-            f"Model for predicting house prices.\n"
-            f"Algorithm: {model_cfg['best_model']}\n"
-            f"Hyperparameters: {model_cfg['parameters']}\n"
-            f"Features used: All features in the dataset except the target variable\n"
-            f"Target variable: {target}\n"
-            f"Trained on dataset: {args.data}\n"
-            f"Model saved at: {args.models_dir}/trained/{model_name}.pkl\n"
-            f"Performance metrics:\n"
-            f"  - MAE: {mae:.2f}\n"
-            f"  - R²: {r2:.4f}"
-        )
-        client.update_registered_model(name=model_name, description=description)
+            # Add a human-readable description
+            description = (
+                f"Model for predicting house prices.\n"
+                f"Algorithm: {model_cfg['best_model']}\n"
+                f"Hyperparameters: {model_cfg['parameters']}\n"
+                f"Features used: All features in the dataset except the target variable\n"
+                f"Target variable: {target}\n"
+                f"Trained on dataset: {args.data}\n"
+                f"Model saved at: {args.models_dir}/trained/{model_name}.pkl\n"
+                f"Performance metrics:\n"
+                f"  - MAE: {mae:.2f}\n"
+                f"  - R²: {r2:.4f}"
+            )
+            client.update_registered_model(name=model_name, description=description)
 
-        # Add tags for better organization
-        client.set_registered_model_tag(model_name, "algorithm", model_cfg['best_model'])
-        client.set_registered_model_tag(model_name, "hyperparameters", str(model_cfg['parameters']))
-        client.set_registered_model_tag(model_name, "features", "All features except target variable")
-        client.set_registered_model_tag(model_name, "target_variable", target)
-        client.set_registered_model_tag(model_name, "training_dataset", args.data)
-        client.set_registered_model_tag(model_name, "model_path", f"{args.models_dir}/trained/{model_name}.pkl")
+            # Add tags for better organization
+            client.set_registered_model_tag(model_name, "algorithm", model_cfg['best_model'])
+            client.set_registered_model_tag(model_name, "hyperparameters", str(model_cfg['parameters']))
+            client.set_registered_model_tag(model_name, "features", "All features except target variable")
+            client.set_registered_model_tag(model_name, "target_variable", target)
+            client.set_registered_model_tag(model_name, "training_dataset", args.data)
+            client.set_registered_model_tag(model_name, "model_path", f"{args.models_dir}/trained/{model_name}.pkl")
 
-        # Add dependency tags
-        deps = {
-            "python_version": platform.python_version(),
-            "scikit_learn_version": sklearn.__version__,
-            "xgboost_version": xgb.__version__,
-            "pandas_version": pd.__version__,
-            "numpy_version": np.__version__,
-        }
-        for k, v in deps.items():
-            client.set_registered_model_tag(model_name, k, v)
+            # Add dependency tags
+            deps = {
+                "python_version": platform.python_version(),
+                "scikit_learn_version": sklearn.__version__,
+                "xgboost_version": xgb.__version__,
+                "pandas_version": pd.__version__,
+                "numpy_version": np.__version__,
+            }
+            for k, v in deps.items():
+                client.set_registered_model_tag(model_name, k, v)
+        except Exception as e:
+            logger.warning(f"Skipping MLflow registry operations: {e}")
 
         # Save model locally
         save_path = f"{args.models_dir}/trained/{model_name}.pkl"

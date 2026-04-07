@@ -18,10 +18,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -32,7 +32,7 @@ jobs:
         run: python src/data/run_processing.py
 
       - name: Upload processed data
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: processed-data
           path: data/processed/
@@ -42,16 +42,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download processed data
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: processed-data
           path: data/processed/
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -72,11 +72,15 @@ jobs:
         run: mkdir -p models/trained/
 
       - name: Train model
-        # Chạy từ gốc thư mục để các đường dẫn data/ và configs/ chính xác
-        run: python3 src/models/train_model.py
+        # Script train_model.py yêu cầu tham số bắt buộc; thiếu sẽ exit code 2.
+        run: |
+          python src/models/train_model.py \
+            --config configs/model_config.yaml \
+            --data data/processed/cleaned_house_data.csv \
+            --models-dir models
 
       - name: Upload trained model
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: trained-model
           path: models/trained/
@@ -86,10 +90,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download trained model
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: trained-model
           path: models/trained/

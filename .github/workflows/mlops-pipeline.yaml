@@ -7,6 +7,11 @@ on:
   pull_request:
     branches: [ main ]
 
+# Thêm biến môi trường toàn cục để xử lý cảnh báo Node.js 20
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PYTHONPATH: ${{ github.workspace }}
+
 jobs:
   data-processing:
     runs-on: ubuntu-latest
@@ -62,6 +67,7 @@ jobs:
         run: mkdir -p models/trained/
 
       - name: Train model
+        # Sử dụng PYTHONPATH để đảm bảo script tìm thấy các module trong src/
         run: python src/models/train_model.py
 
       - name: Upload trained model

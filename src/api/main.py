@@ -1,7 +1,8 @@
 from fastapi import FastAPI
+
+from src.api.inference import predict_price, batch_predict
+from src.api.schemas import HousePredictionRequest, PredictionResponse
 from fastapi.middleware.cors import CORSMiddleware
-from inference import predict_price, batch_predict
-from schemas import HousePredictionRequest, PredictionResponse
 from prometheus_fastapi_instrumentator import Instrumentator  # 👈 Add this
 from prometheus_client import start_http_server
 import threading
